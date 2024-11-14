@@ -1,0 +1,1 @@
+https://arsthaumaturgis.github.io/Panda3DTutorial.io/tutorial/tut_lesson08.html
