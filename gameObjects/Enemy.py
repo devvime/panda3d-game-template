@@ -82,6 +82,8 @@ class WalkingEnemy(Enemy):
         self.attackDelayTimer = 0
         self.attackWaitTimer = 0
         
+        self.actor.play("spawn")
+        
     def runLogic(self, player, dt):
         vectorToPlayer = player.actor.getPos() - self.actor.getPos()
 
@@ -128,6 +130,10 @@ class WalkingEnemy(Enemy):
         
         self.attackSegment.setPointA(self.actor.getPos())
         self.attackSegment.setPointB(self.actor.getPos() + self.actor.getQuat().getForward()*self.attackDistance)
+        
+        spawnControl = self.actor.getAnimControl("spawn")
+        if spawnControl is not None and spawnControl.isPlaying():
+            return
         
     def cleanup(self):
         base.cTrav.removeCollider(self.attackSegmentNodePath)
