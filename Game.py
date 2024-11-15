@@ -16,6 +16,7 @@ from direct.actor.Actor import Actor
 
 from gameObjects.Player import Player
 from gameObjects.Enemy import Enemy, WalkingEnemy
+from gameObjects.TrapEnemy import TrapEnemy
 
 class Game(ShowBase):
     def __init__(self):
@@ -26,13 +27,25 @@ class Game(ShowBase):
         
     def initConfig(self):
         self.disableMouse()
+        
         self.camera.setPos(0, 0, 32)
         self.camera.setP(-90)
-        self.render.setShaderAuto()        
-        self.setKeyMap()        
+        self.render.setShaderAuto()    
+        
+        self.setKeyMap()
+        
+        # init collisions
         self.cTrav = CollisionTraverser()
         self.pusher = CollisionHandlerPusher()        
-        self.pusher.setHorizontal(True) # set horizontal 2D not 3D collision        
+        self.pusher.setHorizontal(True) # set horizontal 2D not 3D collision  
+        self.pusher.add_in_pattern("%fn-into-%in")
+        
+        self.accept("trapEnemy-into-wall", self.stopTrap)
+        self.accept("trapEnemy-into-trapEnemy", self.stopTrap)
+        self.accept("trapEnemy-into-player", self.trapHitsSomething)
+        self.accept("trapEnemy-into-walkingEnemy", self.trapHitsSomething)
+        # end collisions
+
         self.updateTask = self.taskMgr.add(self.update, "update")
         
     def create(self):
@@ -45,11 +58,14 @@ class Game(ShowBase):
         self.player = Player()
         self.tempEnemy = WalkingEnemy(Vec3(5, 0, 0))
         
+        self.tempTrap = TrapEnemy(Vec3(-2, 7, 0))
+        
     def update(self, task):
         dt = globalClock.getDt()
         
         self.player.update(self.keyMap, dt)
         self.tempEnemy.update(self.player, dt)
+        self.tempTrap.update(self.player, dt)
         
         return task.cont
         
@@ -115,6 +131,33 @@ class Game(ShowBase):
         wall = render.attachNewNode(wallNode)
         wall.setX(-8.0)
         wall.show()
+        
+    def stopTrap(self, entry):
+        collider = entry.getFromNodePath()
+        if collider.hasPythonTag("owner"):
+            trap = collider.getPythonTag("owner")
+            trap.moveDirection = 0
+            trap.ignorePlayer = False
+            
+    def trapHitsSomething(self, entry):
+        collider = entry.getFromNodePath()
+        if collider.hasPythonTag("owner"):
+            trap = collider.getPythonTag("owner")
+
+            # We don't want stationary traps to do damage,
+            # so ignore the collision if the "moveDirection" is 0
+            if trap.moveDirection == 0:
+                return
+
+            collider = entry.getIntoNodePath()
+            if collider.hasPythonTag("owner"):
+                obj = collider.getPythonTag("owner")
+                if isinstance(obj, Player):
+                    if not trap.ignorePlayer:
+                        obj.alterHealth(-1)
+                        trap.ignorePlayer = True
+                else:
+                    obj.alterHealth(-10)
         
 game = Game()
 game.run()

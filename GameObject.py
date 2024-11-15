@@ -57,4 +57,3 @@ class GameObject():
             self.actor = None
 
         self.collider = None
-      
